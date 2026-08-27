@@ -3,22 +3,35 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
 import Login from '@/components/Login.vue'
-import { Heart, MapPin, Star, Clock, ArrowLeft } from 'lucide-vue-next'
+import { Heart, MapPin, Star, ArrowLeft } from 'lucide-vue-next'
 import { useBarberStore } from '@/composables/useBarberStore'
 import { useFavoritesStore } from '@/composables/useFavoritesStore'
 import { useAgendaStore } from '@/composables/useAgendaStore'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
 const route = useRoute()
 const barberStore = useBarberStore()
 const favoritesStore = useFavoritesStore()
 const agendaStore = useAgendaStore()
+const { isAuthenticated, currentUser } = useAuth()
 
 const sidebarMinimized = ref(false)
 const showLogin = ref(false)
 const showAgendaModal = ref(false)
 const selectedDate = ref('')
 const selectedTime = ref('')
+const ratingMessage = ref('')
+const ratedBarbersKey = computed(() => `ratedBarbers:${currentUser.value?.email || 'guest'}`)
+const ratedBarbers = ref(readRatedBarbers())
+
+function readRatedBarbers() {
+  try {
+    return JSON.parse(localStorage.getItem(`ratedBarbers:${currentUser.value?.email || 'guest'}`) || '[]')
+  } catch {
+    return []
+  }
+}
 
 const handleToggleSidebar = (isMinimized) => {
   sidebarMinimized.value = isMinimized
@@ -31,6 +44,10 @@ const barber = computed(() => {
 })
 
 function toggleFavorite() {
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
   favoritesStore.toggleFavorite(barberId.value)
 }
 
@@ -39,6 +56,10 @@ function isFavorite() {
 }
 
 function openAgendaModal() {
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
   showAgendaModal.value = true
 }
 
@@ -56,6 +77,29 @@ function confirmAgenda() {
 
 function hasAgenda() {
   return agendaStore.hasAgenda(barberId.value)
+}
+
+function hasRated() {
+  return ratedBarbers.value.includes(barberId.value)
+}
+
+function rateBarber(score) {
+  ratingMessage.value = ''
+
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
+
+  if (hasRated()) {
+    ratingMessage.value = 'Ya calificaste esta barbería.'
+    return
+  }
+
+  barberStore.rateBarber(barberId.value, score)
+  ratedBarbers.value = [...ratedBarbers.value, barberId.value]
+  localStorage.setItem(ratedBarbersKey.value, JSON.stringify(ratedBarbers.value))
+  ratingMessage.value = 'Gracias por compartir tu opinión.'
 }
 </script>
 
@@ -89,10 +133,34 @@ function hasAgenda() {
             <div>
               <h1>{{ barber.nombre }}</h1>
               <div class="rating-section">
-                <span class="rating">⭐ {{ barber.rating }} / 5</span>
+                <span class="rating">
+                  <template v-if="barber.ratingCount">⭐ {{ barber.rating }} / 5 · {{ barber.ratingCount }} {{ barber.ratingCount === 1 ? 'opinión' : 'opiniones' }}</template>
+                  <template v-else>Sin calificaciones</template>
+                </span>
               </div>
             </div>
             <span class="price-badge">${{ barber.precio }}</span>
+          </div>
+
+          <div class="rating-panel">
+            <div>
+              <h3>¿Cómo fue tu experiencia?</h3>
+              <p>Califica esta barbería después de tu visita.</p>
+            </div>
+            <div class="rating-stars" role="group" aria-label="Calificar barbería">
+              <button
+                v-for="score in 5"
+                :key="score"
+                type="button"
+                :class="{ selected: score <= (barber.rating || 0) && hasRated() }"
+                :aria-label="`Calificar con ${score} estrellas`"
+                :disabled="hasRated()"
+                @click="rateBarber(score)"
+              >
+                <Star :fill="score <= (barber.rating || 0) && hasRated() ? 'currentColor' : 'none'" />
+              </button>
+            </div>
+            <p v-if="ratingMessage" class="rating-message">{{ ratingMessage }}</p>
           </div>
 
           <!-- Location -->
@@ -337,6 +405,61 @@ function hasAgenda() {
 .rating {
   font-size: 1.1rem;
   color: #ffd700;
+}
+
+.rating-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid rgba(191, 146, 75, 0.25);
+  border-radius: 12px;
+  background: rgba(191, 146, 75, 0.06);
+}
+
+.rating-panel h3 {
+  margin: 0 0 5px;
+  font-size: 1rem;
+}
+
+.rating-panel p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.rating-stars button {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.rating-stars button:hover:not(:disabled),
+.rating-stars button.selected {
+  color: #ffd700;
+}
+
+.rating-stars button:disabled {
+  cursor: default;
+}
+
+.rating-stars svg {
+  width: 25px;
+  height: 25px;
+}
+
+.rating-message {
+  color: #BF924B !important;
 }
 
 .price-badge {
@@ -608,6 +731,11 @@ function hasAgenda() {
 }
 
 @media (max-width: 768px) {
+  .rating-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .detail-page {
     margin-left: 80px;
     padding: 30px 20px;

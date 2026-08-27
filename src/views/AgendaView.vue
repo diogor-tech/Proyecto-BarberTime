@@ -7,11 +7,14 @@ import { useRouter } from 'vue-router'
 import { useAgendaStore } from '@/composables/useAgendaStore'
 import { useBarberStore } from '@/composables/useBarberStore'
 import { useFavoritesStore } from '@/composables/useFavoritesStore'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
 const agendaStore = useAgendaStore()
 const barberStore = useBarberStore()
 const favoritesStore = useFavoritesStore()
+const { avatar } = useAuth()
+const { isAuthenticated } = useAuth()
 
 // SIDEBAR TOGGLE
 const sidebarMinimized = ref(false)
@@ -20,6 +23,15 @@ const handleToggleSidebar = (isMinimized) => {
 }
 
 const showLogin = ref(false)
+
+function irAPerfil() {
+  if (isAuthenticated.value) {
+    router.push('/profile')
+    return
+  }
+
+  showLogin.value = true
+}
 const searchQuery = ref('')
 
 // MODAL DE AGENDAMIENTO
@@ -156,8 +168,9 @@ function removeAgenda(barberId) {
             type="text"
             placeholder="Buscar cita..."
           />
-          <div class="avatar-box" @click="showLogin = true">
-            <UserRound class="user-icon" />
+          <div :class="['avatar-box', { 'is-authenticated': isAuthenticated }]" @click="irAPerfil">
+            <img v-if="avatar" :src="avatar" class="avatar-image" alt="Foto de perfil" />
+            <UserRound v-else class="user-icon" />
           </div>
         </div>
       </header>
@@ -182,7 +195,7 @@ function removeAgenda(barberId) {
               :style="{ backgroundImage: `url(${item.barberia?.imagen || 'https://via.placeholder.com/400'})` }"
             >
               <div class="rating">
-                ⭐ {{ item.barberia?.rating || '5.0' }}
+                ⭐ {{ item.barberia?.rating || 'Nueva' }}
               </div>
               <button
                 class="favorite-btn"
@@ -250,7 +263,7 @@ function removeAgenda(barberId) {
               class="card-image"
               :style="{ backgroundImage: `url(${barber.imagen})` }"
             >
-              <div class="rating">⭐ {{ barber.rating }}</div>
+              <div class="rating">⭐ {{ barber.rating || 'Nueva' }}</div>
               <button
                 class="favorite-btn"
                 @click.stop="toggleFavorite(barber.id)"
@@ -476,6 +489,11 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.06);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   cursor: pointer;
+}
+
+.avatar-box.is-authenticated {
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .avatar-box:hover {

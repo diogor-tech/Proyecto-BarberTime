@@ -5,9 +5,12 @@ import Login from '@/components/Login.vue'
 import { useRouter } from 'vue-router'
 import { Heart, UserRound, Star } from 'lucide-vue-next'
 import { useFavoritesStore } from '@/composables/useFavoritesStore'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
 const favoritesStore = useFavoritesStore()
+const { avatar } = useAuth()
+const { isAuthenticated } = useAuth()
 
 const sidebarMinimized = ref(false)
 const handleToggleSidebar = (isMinimized) => {
@@ -15,6 +18,15 @@ const handleToggleSidebar = (isMinimized) => {
 }
 
 const showLogin = ref(false)
+
+function irAPerfil() {
+  if (isAuthenticated.value) {
+    router.push('/profile')
+    return
+  }
+
+  showLogin.value = true
+}
 const searchQuery = ref('')
 
 // Computed para acceder a favoriteBarbers con búsqueda
@@ -58,8 +70,9 @@ function viewBarbershop(barberId) {
             type="text"
             placeholder="Buscar favorita..."
           />
-          <div class="avatar-box" @click="showLogin = true">
-            <UserRound class="user-icon" />
+          <div :class="['avatar-box', { 'is-authenticated': isAuthenticated }]" @click="irAPerfil">
+            <img v-if="avatar" :src="avatar" class="avatar-image" alt="Foto de perfil" />
+            <UserRound v-else class="user-icon" />
           </div>
         </div>
       </header>
@@ -79,7 +92,7 @@ function viewBarbershop(barberId) {
               :style="{ backgroundImage: `url(${barber.imagen})` }"
             >
               <div class="rating">
-                ⭐ {{ barber.rating }}
+                ⭐ {{ barber.rating || 'Nueva' }}
               </div>
               <button
                 class="remove-btn"
@@ -245,6 +258,11 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.06);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   cursor: pointer;
+}
+
+.avatar-box.is-authenticated {
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .avatar-box:hover {

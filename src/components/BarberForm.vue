@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
@@ -19,7 +19,6 @@ const form = reactive({
   telefono: props.initialData?.telefono ?? '',
   descripcion: props.initialData?.descripcion ?? '',
   imagen: props.initialData?.imagen ?? '',
-  rating: props.initialData?.rating ?? 4.8,
   precio: props.initialData?.precio ?? 500,
   servicios: props.initialData?.servicios ?? [],
   horario: props.initialData?.horario ?? '',
@@ -36,6 +35,44 @@ const servicios = [
   'Skin Fade',
   'Afro'
 ]
+
+const imageInput = ref(null)
+const imageError = ref('')
+
+function openImagePicker() {
+  imageInput.value?.click()
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files?.[0]
+  imageError.value = ''
+
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    imageError.value = 'Selecciona un archivo de imagen válido.'
+    event.target.value = ''
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    imageError.value = 'La imagen no puede superar los 5 MB.'
+    event.target.value = ''
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    form.imagen = reader.result
+  }
+  reader.readAsDataURL(file)
+}
+
+function removeImage() {
+  form.imagen = ''
+  imageError.value = ''
+  if (imageInput.value) imageInput.value.value = ''
+}
 
 function toggleServicio(servicio) {
   const index = form.servicios.indexOf(servicio)
@@ -123,20 +160,30 @@ function handleSubmit() {
     </div>
 
     <div class="form-section">
-      <h3>Imagen y Precios</h3>
+      <h3>Imagen y precios</h3>
       
       <div class="form-group">
-        <label>URL de imagen *</label>
+        <label>Foto de la barbería *</label>
         <input
-          v-model="form.imagen"
-          type="url"
-          placeholder="https://ejemplo.com/imagen.jpg"
-          required
+          ref="imageInput"
+          class="file-input"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          @change="handleImageUpload"
         />
+        <button type="button" class="image-picker" @click="openImagePicker">
+          <span class="picker-icon">+</span>
+          <span>
+            <strong>{{ form.imagen ? 'Cambiar imagen' : 'Seleccionar imagen' }}</strong>
+            <small>JPG, PNG o WEBP · máximo 5 MB</small>
+          </span>
+        </button>
+        <p v-if="imageError" class="field-error">{{ imageError }}</p>
       </div>
 
       <div v-if="form.imagen" class="image-preview">
         <img :src="form.imagen" :alt="form.nombre" />
+        <button type="button" class="remove-image" @click="removeImage">Quitar imagen</button>
       </div>
 
       <div class="form-row">
@@ -150,16 +197,6 @@ function handleSubmit() {
           />
         </div>
 
-        <div class="form-group">
-          <label>Calificación (1-5)</label>
-          <input
-            v-model.number="form.rating"
-            type="number"
-            min="1"
-            max="5"
-            step="0.1"
-          />
-        </div>
       </div>
     </div>
 
@@ -262,6 +299,62 @@ function handleSubmit() {
   min-height: 100px;
 }
 
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.image-picker {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: rgba(191, 146, 75, 0.08);
+  border: 1px dashed rgba(191, 146, 75, 0.65);
+  border-radius: 14px;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.image-picker:hover {
+  background: rgba(191, 146, 75, 0.16);
+  border-color: #BF924B;
+}
+
+.picker-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #BF924B;
+  color: #111;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.image-picker strong,
+.image-picker small {
+  display: block;
+}
+
+.image-picker small {
+  margin-top: 4px;
+  color: #9ca3af;
+}
+
+.field-error {
+  margin-top: 8px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -280,6 +373,15 @@ function handleSubmit() {
   width: 100%;
   height: 300px;
   object-fit: cover;
+}
+
+.remove-image {
+  width: 100%;
+  padding: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0;
+  color: #d1d5db;
+  cursor: pointer;
 }
 
 .servicios-grid {

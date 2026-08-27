@@ -3,8 +3,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
 import Login from '@/components/Login.vue'
+import { DEFAULT_AVATAR, useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { setUser, logout } = useAuth()
 
 const sidebarMinimized = ref(false)
 
@@ -40,6 +42,7 @@ const guardarPerfil = () => {
     'currentUser',
     JSON.stringify(user.value)
   )
+  setUser(user.value)
 
   alert('Perfil actualizado')
 }
@@ -60,6 +63,7 @@ const cambiarFoto = (event) => {
       'currentUser',
       JSON.stringify(user.value)
     )
+    setUser(user.value)
   }
 
   reader.readAsDataURL(file)
@@ -67,7 +71,7 @@ const cambiarFoto = (event) => {
 
 const cerrarSesion = () => {
 
-  localStorage.removeItem('currentUser')
+  logout()
 
   alert('Sesión cerrada')
 
@@ -93,7 +97,7 @@ const cerrarSesion = () => {
       <div class="avatar-container">
 
         <img
-          :src="user.avatar || 'https://i.pravatar.cc/300'"
+          :src="user.avatar || DEFAULT_AVATAR"
           class="avatar"
           alt="Foto de perfil"
         />

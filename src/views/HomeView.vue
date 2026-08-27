@@ -6,11 +6,13 @@ import { UserRound, Crown, Heart } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useBarberStore } from '@/composables/useBarberStore'
 import { useFavoritesStore } from '@/composables/useFavoritesStore'
+import { useAuth } from '@/composables/useAuth'
 import products from '@/data/products'
 
 const router = useRouter()
 const barberStore = useBarberStore()
 const favoritesStore = useFavoritesStore()
+const { avatar, isAuthenticated } = useAuth()
 
 // SIDEBAR TOGGLE: Controla el estado de la sidebar minimizada
 const sidebarMinimized = ref(false)
@@ -30,11 +32,24 @@ const filteredBarbers = computed(() => {
 })
 
 function toggleFavorite(barberId) {
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
   favoritesStore.toggleFavorite(barberId)
 }
 
 function isFavorite(barberId) {
   return favoritesStore.isFavorite(barberId)
+}
+
+function irAPerfil() {
+  if (isAuthenticated.value) {
+    router.push('/profile')
+    return
+  }
+
+  showLogin.value = true
 }
 
 function abrirProducto(productId) {
@@ -73,10 +88,11 @@ function abrirProducto(productId) {
           />
 
           <div
-            class="avatar-box"
-            @click="showLogin = true"
+            :class="['avatar-box', { 'is-authenticated': isAuthenticated }]"
+            @click="irAPerfil"
           >
-            <UserRound class="user-icon" />
+            <img v-if="avatar" :src="avatar" class="avatar-image" alt="Foto de perfil" />
+            <UserRound v-else class="user-icon" />
           </div>
         </div>
       </header>
@@ -158,7 +174,7 @@ function abrirProducto(productId) {
           >
 
             <div class="rating">
-              ⭐ {{ barber.rating }}
+              ⭐ {{ barber.rating || 'Nueva' }}
             </div>
 
             <button
@@ -423,6 +439,11 @@ body{
   border:1px solid rgba(255,255,255,0.06);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   cursor: pointer;
+}
+
+.avatar-box.is-authenticated{
+  border-radius:50%;
+  overflow:hidden;
 }
 
 .avatar-box:hover{

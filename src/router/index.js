@@ -27,18 +27,21 @@ const router = createRouter({
     {
       path: '/agenda',
       name: 'agenda',
+      meta: { requiresAuth: true },
       component: () => import('../views/AgendaView.vue'),
     },
 
     {
       path: '/favorites',
       name: 'favorites',
+      meta: { requiresAuth: true },
       component: () => import('../views/FavoritesView.vue'),
     },
 
     {
       path: '/profile',
       name: 'profile',
+      meta: { requiresAuth: true },
       component: () => import('../views/ProfileView.vue'),
     },
 
@@ -49,16 +52,19 @@ const router = createRouter({
     },
     {
 path:"/checkout",
+meta: { requiresAuth: true },
 component:CheckoutView
 },
 
     {
       path: '/create',
       name: 'create',
+      meta: { requiresAuth: true },
       component: () => import('../views/secondary/BarbercreateView.vue'),
     },
     {
   path: "/cart",
+  meta: { requiresAuth: true },
   component: CartView
 },
 
@@ -74,6 +80,12 @@ component:CheckoutView
 }
 
   ],
+})
+
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !localStorage.getItem('currentUser')) {
+    return { path: '/', query: { login: 'required' } }
+  }
 })
 
 export default router

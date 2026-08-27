@@ -1,10 +1,14 @@
 <script setup>
 import Sidebar from "@/components/Sidebar.vue"
+import Login from "@/components/Login.vue"
 import products from "@/data/products"
 import { useRouter } from "vue-router"
 import { ref, computed, onMounted, onUnmounted } from "vue"
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { isAuthenticated } = useAuth()
+const showLogin = ref(false)
 const abrirProducto = (producto) => {
   router.push(`/product/${producto.id}`)
 }
@@ -71,6 +75,11 @@ const handleToggleSidebar = (value) => {
   sidebarMinimized.value = value
 }
 const agregarCarrito = (producto) => {
+
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
 
   const carrito =
     JSON.parse(localStorage.getItem("cart")) || []
@@ -229,6 +238,8 @@ Quedan {{ producto.stock }} unidades
 </div>
 
 </main>
+
+<Login v-if="showLogin" @close="showLogin = false" />
 
 </div>
 

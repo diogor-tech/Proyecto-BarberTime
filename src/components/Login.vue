@@ -1,7 +1,10 @@
 <script setup>
 import { ref } from 'vue'
+import { useAuth } from '@/composables/useAuth'
 
 const emit = defineEmits(['close', 'login'])
+const { setUser } = useAuth()
+const defaultAvatar = 'https://drive.google.com/thumbnail?id=1Igq46CyxTBBX8AEimgfYxqmZrgcZLZqL&sz=w640'
 
 const isLogin = ref(true)
 
@@ -30,6 +33,7 @@ const login = () => {
     JSON.stringify(user)
   )
 
+  setUser(user)
   emit('login', user)
   emit('close')
 }
@@ -53,9 +57,7 @@ const register = () => {
     name: name.value,
     email: email.value,
     password: password.value,
-    avatar:
-      'https://i.pravatar.cc/150?img=' +
-      Math.floor(Math.random() * 70)
+    avatar: defaultAvatar
   }
 
   users.push(newUser)
@@ -70,6 +72,7 @@ const register = () => {
     JSON.stringify(newUser)
   )
 
+  setUser(newUser)
   emit('login', newUser)
   emit('close')
 }

@@ -1,15 +1,27 @@
 <script setup>
 import Sidebar from "@/components/Sidebar.vue"
 import products from "@/data/products"
-import { useRoute } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { ref } from "vue"
 import Login from "@/components/Login.vue"
 import { UserRound } from "lucide-vue-next"
+import { useAuth } from '@/composables/useAuth'
 
 const route = useRoute()
+const router = useRouter()
 
 const sidebarMinimized = ref(false)
 const showLogin = ref(false)
+const { avatar, isAuthenticated } = useAuth()
+
+function irAPerfil() {
+  if (isAuthenticated.value) {
+    router.push('/profile')
+    return
+  }
+
+  showLogin.value = true
+}
 
 const handleToggleSidebar = (v) => {
   sidebarMinimized.value = v
@@ -20,6 +32,11 @@ const producto = products.find(
 )
 
 const agregarCarrito = () => {
+
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
 
   const carrito =
     JSON.parse(localStorage.getItem("cart")) || []
@@ -64,8 +81,9 @@ const agregarCarrito = () => {
   </div>
   <div class="user-box">
     <input type="text" placeholder="Buscar producto..." />
-    <div class="avatar-box" @click="showLogin = true">
-      <UserRound class="user-icon" />
+    <div :class="['avatar-box', { 'is-authenticated': isAuthenticated }]" @click="irAPerfil">
+      <img v-if="avatar" :src="avatar" class="avatar-image" alt="Foto de perfil" />
+      <UserRound v-else class="user-icon" />
     </div>
   </div>
 </header>
@@ -145,6 +163,7 @@ Stock:
 .user-box input { width: 280px; padding: 15px 20px; border: none; border-radius: 14px; background: #1f2937; color: white; outline: none; }
 .user-box input::placeholder { color: #9ca3af; }
 .avatar-box { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: linear-gradient(135deg, rgba(191,146,75,.12), rgba(255,183,67,.08)); border: 1px solid rgba(255,255,255,.06); cursor: pointer; }
+.avatar-box.is-authenticated { border-radius: 50%; overflow: hidden; }
 .user-icon { width: 28px; height: 28px; color: #BF924B; }
 .category { color: #BF924B !important; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
 .product { display: grid; grid-template-columns: minmax(280px, 480px) minmax(0, 1fr); gap: 55px; align-items: center; padding: 28px; background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; }

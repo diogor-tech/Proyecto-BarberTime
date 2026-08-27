@@ -25,7 +25,7 @@ const usuarioSchema = new mongoose.Schema({
 
   avatar: {
     type: String,
-    default: ""
+    default: "https://drive.google.com/thumbnail?id=1Igq46CyxTBBX8AEimgfYxqmZrgcZLZqL&sz=w640"
   },
 
   emailVerificado: {

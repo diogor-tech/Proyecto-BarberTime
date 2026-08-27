@@ -6,11 +6,13 @@ import Login from '../components/Login.vue'
 import { Search, Heart } from 'lucide-vue-next'
 import { useBarberStore } from '@/composables/useBarberStore'
 import { useFavoritesStore } from '@/composables/useFavoritesStore'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
 const search = ref('')
 const barberStore = useBarberStore()
 const favoritesStore = useFavoritesStore()
+const { isAuthenticated } = useAuth()
 
 // SIDEBAR TOGGLE: Controla el estado de la sidebar minimizada
 const sidebarMinimized = ref(false)
@@ -20,6 +22,15 @@ const handleToggleSidebar = (isMinimized) => {
 
 const showLogin = ref(false)
 
+function reservar(barberId) {
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
+
+  router.push(`/barbershop/${barberId}`)
+}
+
 const barberiasFiltradas = computed(() => {
   return barberStore.barbers.value.filter(barberia =>
     barberia.nombre.toLowerCase().includes(search.value.toLowerCase())
@@ -27,6 +38,10 @@ const barberiasFiltradas = computed(() => {
 })
 
 function toggleFavorite(barberId) {
+  if (!isAuthenticated.value) {
+    showLogin.value = true
+    return
+  }
   favoritesStore.toggleFavorite(barberId)
 }
 
@@ -85,9 +100,9 @@ function isFavorite(barberId) {
             <div v-if="barberia.ciudad" class="city">{{ barberia.ciudad }}</div>
 
             <div class="bottom">
-              <span>⭐ {{ barberia.rating }}</span>
+              <span>⭐ {{ barberia.rating || 'Nueva' }}</span>
               <span class="price">${{ barberia.precio }}</span>
-              <button class="reserve-btn" @click.stop="router.push(`/barbershop/${barberia.id}`)">Reservar</button>
+              <button class="reserve-btn" @click.stop="reservar(barberia.id)">Reservar</button>
             </div>
           </div>
         </div>

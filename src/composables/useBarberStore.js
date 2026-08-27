@@ -13,11 +13,27 @@ export function useBarberStore() {
     const newBarber = {
       id: Date.now().toString(),
       ...barberData,
+      rating: 0,
+      ratingCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
     sharedBarbersRef.value.push(newBarber)
     return newBarber
+  }
+
+  function rateBarber(id, rating) {
+    const barber = sharedBarbersRef.value.find(item => item.id === id)
+    const score = Number(rating)
+
+    if (!barber || !Number.isInteger(score) || score < 1 || score > 5) {
+      return null
+    }
+
+    const ratingCount = barber.ratingCount || 0
+    barber.rating = Number((((barber.rating || 0) * ratingCount + score) / (ratingCount + 1)).toFixed(1))
+    barber.ratingCount = ratingCount + 1
+    return barber
   }
 
   function updateBarber(id, barberData) {
@@ -50,6 +66,7 @@ export function useBarberStore() {
     getBarberById,
     addBarber,
     updateBarber,
+    rateBarber,
     deleteBarber,
   }
 }
