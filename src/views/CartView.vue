@@ -1,8 +1,11 @@
 <script setup>
 import Sidebar from "@/components/Sidebar.vue"
 import { ref, computed } from "vue"
+import Login from "@/components/Login.vue"
+import { UserRound } from "lucide-vue-next"
 
 const sidebarMinimized = ref(false)
+const showLogin = ref(false)
 
 const handleToggleSidebar = (value) => {
   sidebarMinimized.value = value
@@ -67,11 +70,22 @@ const eliminar = (id) => {
 
 <main :class="['main-content',{ 'sidebar-minimized': sidebarMinimized }]">
 
-<h1>🛒 Mi carrito</h1>
+<header class="topbar">
+  <div>
+    <h1>Mi carrito</h1>
+    <p>Revisa tus productos antes de finalizar la compra.</p>
+  </div>
+  <div class="user-box">
+    <input type="text" placeholder="Buscar producto..." />
+    <div class="avatar-box" @click="showLogin = true">
+      <UserRound class="user-icon" />
+    </div>
+  </div>
+</header>
 
-<div
-v-if="carrito.length"
->
+<div v-if="carrito.length" class="cart-layout">
+
+<section class="cart-items">
 
 <div
 class="card"
@@ -79,7 +93,7 @@ v-for="producto in carrito"
 :key="producto.id"
 >
 
-<img :src="producto.image">
+<img :src="producto.image" :alt="producto.name">
 
 <div class="info">
 
@@ -87,7 +101,7 @@ v-for="producto in carrito"
 
 <p>{{producto.brand}}</p>
 
-<h3>${{producto.price}}</h3>
+<h3>${{ Math.round(producto.price - producto.price * (producto.discount || 0) / 100) }}</h3>
 
 <div class="cantidad">
 
@@ -112,31 +126,35 @@ Eliminar
 
 </div>
 
-<div class="total">
+</section>
+
+<aside class="total">
 
 <h2>Total</h2>
 
 <h1>${{total}}</h1>
 
-<button @click="$router.push('/checkout')">
+<button class="checkout-btn" @click="$router.push('/checkout')">
 Finalizar compra
 
 </button>
 
-</div>
+</aside>
 
 </div>
 
-<h2
-v-else
-class="empty"
->
+<div v-else class="empty">
+<h2>
 
 Tu carrito está vacío 🛒
 
 </h2>
+<p>Añade herramientas y productos profesionales para continuar.</p>
+</div>
 
 </main>
+
+<Login v-if="showLogin" @close="showLogin = false" />
 
 </div>
 
@@ -273,5 +291,36 @@ color:white;
 text-align:center;
 margin-top:120px;
 
+}
+
+.topbar { margin-bottom: 35px; }
+.topbar h1 { margin: 6px 0 8px; font-family: 'FuenteBlesh', sans-serif; }
+.topbar p { color: #9ca3af; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 45px; }
+.user-box { display: flex; align-items: center; gap: 20px; }
+.user-box input { width: 280px; padding: 15px 20px; border: none; border-radius: 14px; background: #1f2937; color: white; outline: none; }
+.user-box input::placeholder { color: #9ca3af; }
+.avatar-box { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: linear-gradient(135deg, rgba(191,146,75,.12), rgba(255,183,67,.08)); border: 1px solid rgba(255,255,255,.06); cursor: pointer; }
+.user-icon { width: 28px; height: 28px; color: #BF924B; }
+.cart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+.cart-items { display: grid; gap: 18px; }
+.card { background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.08); }
+.card img { width: 150px; height: 150px; }
+.total { position: sticky; top: 25px; margin-top: 0; text-align: left; border: 1px solid rgba(191, 146, 75, 0.2); }
+.checkout-btn { width: 100%; padding: 14px; border: none; border-radius: 11px; background: linear-gradient(135deg, #BF924B, #ffb743); color: #000; font-weight: 700; cursor: pointer; }
+.empty { margin-top: 0; padding: 70px 30px; background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; }
+.empty p { margin-top: 12px; color: #9ca3af; }
+.main-content { width: calc(100% - 280px); padding: 35px 100px 50px; background: transparent; }
+.main-content.sidebar-minimized { width: calc(100% - 80px); padding: 35px 120px 50px; }
+@media (max-width: 900px) {
+  .main-content, .main-content.sidebar-minimized { margin-left: 80px; width: calc(100% - 80px); padding: 25px 30px 40px; }
+  .cart-layout { grid-template-columns: 1fr; }
+  .total { position: static; }
+  .topbar { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .user-box, .user-box input { width: 100%; }
+}
+@media (max-width: 600px) {
+  .main-content, .main-content.sidebar-minimized { margin-left: 0; width: 100%; padding: 25px 20px 40px; }
+  .card img { width: 105px; height: 105px; }
 }
 </style>

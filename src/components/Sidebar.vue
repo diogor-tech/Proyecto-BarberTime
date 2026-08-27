@@ -134,15 +134,20 @@ const navigate = (link) => {
 
 .sidebar {
   width: 280px;
+  height: 100dvh;
   min-height: 100vh;
   background:#000000e3;
   padding: 35px 25px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   position: fixed;
   left: 0;
   top: 0;
+  z-index: 50;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
   transition: width 0.3s ease;
 }
 
@@ -195,9 +200,15 @@ const navigate = (link) => {
   cursor: pointer;
 }
 
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
 .brand-icon img {
-  width: 200%;
-  height: 200%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
@@ -253,6 +264,8 @@ const navigate = (link) => {
   background: linear-gradient(135deg, #bf924b, #ffc465);
   padding: 25px;
   border-radius: 24px;
+  margin-top: 30px;
+  flex-shrink: 0;
 }
 
 .premium-box h3 {
@@ -313,6 +326,37 @@ font-size:12px;
 
 font-weight:bold;
 
+}
+
+@media (max-height: 850px) and (min-width: 901px) {
+  .sidebar {
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
+
+  .menu {
+    gap: 8px;
+    margin-top: 28px;
+  }
+
+  .menu a {
+    padding: 10px 12px;
+  }
+
+  .premium-box {
+    padding: 18px;
+    margin-top: 20px;
+  }
+
+  .premium-box p {
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
 }
 
 </style>

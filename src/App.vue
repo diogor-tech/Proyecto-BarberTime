@@ -17,8 +17,17 @@ router.afterEach(() => {
 </template>
 
 <style>
+* {
+  box-sizing: border-box;
+}
+
 html, body {
   margin: 0;
   min-height: 100%;
+  overflow-x: hidden;
+}
+
+#app {
+  width: 100%;
 }
 </style>

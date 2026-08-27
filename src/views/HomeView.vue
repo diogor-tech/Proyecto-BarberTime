@@ -6,6 +6,7 @@ import { UserRound, Crown, Heart } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useBarberStore } from '@/composables/useBarberStore'
 import { useFavoritesStore } from '@/composables/useFavoritesStore'
+import products from '@/data/products'
 
 const router = useRouter()
 const barberStore = useBarberStore()
@@ -34,6 +35,10 @@ function toggleFavorite(barberId) {
 
 function isFavorite(barberId) {
   return favoritesStore.isFavorite(barberId)
+}
+
+function abrirProducto(productId) {
+  router.push(`/product/${productId}`)
 }
 </script>
 
@@ -229,19 +234,21 @@ function isFavorite(barberId) {
 
           <div
             class="featured-card"
-            v-for="n in 4"
-            :key="n"
+            v-for="producto in products"
+            :key="producto.id"
+            @click="abrirProducto(producto.id)"
           >
 
             <img
-              :src="`https://picsum.photos/400?random=${30+n}`"
+              :src="producto.image"
+              :alt="producto.name"
             >
 
-            <h3>Wahl Magic Clip</h3>
+            <h3>{{ producto.name }}</h3>
 
-            <p>$5.990</p>
+            <p>${{ producto.price.toLocaleString('es-UY') }}</p>
 
-            <button>Ver producto</button>
+            <button @click.stop="abrirProducto(producto.id)">Ver producto</button>
 
           </div>
 
@@ -249,24 +256,7 @@ function isFavorite(barberId) {
 
       </section>
 
-      <!-- MARCAS -->
-
-      <section class="brands">
-
-        <h2>Marcas oficiales</h2>
-
-        <div class="brands-grid">
-
-          <div>WAHL</div>
-          <div>BABYLISS</div>
-          <div>ANDIS</div>
-          <div>GAMMA+</div>
-          <div>REUZEL</div>
-          <div>UPPERCUT</div>
-
-        </div>
-
-      </section>
+      
 
       <!-- BENEFICIOS -->
 
@@ -1010,9 +1000,7 @@ color:#9ca3af;
 
 @media(max-width:1100px){
 
-  .brands-grid{
-    grid-template-columns:repeat(3,1fr);
-  }
+  
 
   .benefits{
     grid-template-columns:repeat(2,1fr);
@@ -1022,9 +1010,7 @@ color:#9ca3af;
 
 @media(max-width:700px){
 
-  .brands-grid{
-    grid-template-columns:repeat(2,1fr);
-  }
+  
 
   .benefits{
     grid-template-columns:1fr;

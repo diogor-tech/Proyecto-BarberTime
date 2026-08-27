@@ -12,27 +12,12 @@ const abrirProducto = (producto) => {
 const sidebarMinimized = ref(false)
 const search = ref("")
 const categoria = ref("Todos")
-const banners = [
-
-{
-titulo:"🔥 HOT SALE WAHL",
-texto:"20% OFF en máquinas profesionales",
-imagen:"https://picsum.photos/1400/450?random=40"
-},
-
-{
-titulo:"💈 BABYLISS GOLD FX",
-texto:"La máquina favorita de los barberos",
-imagen:"https://picsum.photos/1400/450?random=41"
-},
-
-{
-titulo:"⚡ OFERTAS EN POMADAS",
-texto:"Hasta 30% OFF",
-imagen:"https://picsum.photos/1400/450?random=42"
-}
-
-]
+const banners = products.map(product => ({
+  id: product.id,
+  titulo: product.name,
+  texto: "Productos oficiales BarberTime",
+  imagen: product.image
+}))
 
 const bannerActual = ref(0)
 
@@ -61,10 +46,9 @@ clearInterval(intervalo)
 })
 const categorias = [
   "Todos",
-  "Máquinas",
-  "Trimmers",
-  "Pomadas",
-  "Barba"
+  "Accesorios",
+  "Ropa",
+  "Herramientas"
 ]
 const filteredProducts = computed(() => {
 
@@ -124,21 +108,6 @@ const agregarCarrito = (producto) => {
 />
 
 <main :class="['main-content',{ 'sidebar-minimized': sidebarMinimized }]">
-  <div
-style="
-background:red;
-color:white;
-font-size:40px;
-padding:30px;
-margin-bottom:30px;
-"
->
-ESTOY EDITANDO EL STOREVIEW
-</div>
-
-<h1 style="color:red;font-size:60px">
-ALEJANDRA LA TARJETA
-</h1>
 <div
 class="store-banner"
 :style="{
@@ -160,7 +129,7 @@ backgroundImage:`url(${banners[bannerActual].imagen})`
 
 </p>
 
-<button>
+<button @click="abrirProducto(banners[bannerActual].id)">
 
 Ver ofertas
 
@@ -194,6 +163,7 @@ v-for="cat in categorias"
 <div
 v-for="producto in filteredProducts"
 class="card"
+ :key="producto.id"
 @click="abrirProducto(producto)"
 >
 <span
@@ -263,9 +233,6 @@ Quedan {{ producto.stock }} unidades
 </div>
 
 </template>
-*{
-  box-sizing:border-box;
-}
 
 <style scoped>
 
@@ -273,7 +240,7 @@ Quedan {{ producto.stock }} unidades
 margin-left:280px;
 padding:50px;
 min-height:100vh;
-background:#0f172a;
+background:linear-gradient(135deg,#111111,#000000);
 transition:.3s;
 }
 
@@ -297,6 +264,11 @@ margin-bottom:35px;
 .card{
   width:100%;
   min-width:0;
+  position:relative;
+  overflow:hidden;
+  background:#1a1a1a;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:22px;
 }
 
 .card:hover{
