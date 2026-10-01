@@ -101,7 +101,7 @@ function isFavorite(barberId) {
 
             <div class="bottom">
               <span>⭐ {{ barberia.rating || 'Nueva' }}</span>
-              <span class="price">${{ barberia.precio }}</span>
+              <span class="price">${{ barberia.servicios?.[0]?.precio || barberia.precio }}</span>
               <button class="reserve-btn" @click.stop="reservar(barberia.id)">Reservar</button>
             </div>
           </div>

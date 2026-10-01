@@ -108,17 +108,17 @@ function viewBarbershop(barberId) {
               <p class="location">{{ barber.direccion }} · {{ barber.ciudad }}</p>
 
               <div class="card-info">
-                <span class="price">${{ barber.precio }}</span>
+                <span class="price">${{ barber.servicios?.[0]?.precio || barber.precio }}</span>
                 <span v-if="barber.disponible" class="status available">Disponible</span>
                 <span v-else class="status closed">Cerrado</span>
               </div>
 
               <div v-if="barber.servicios" class="tags">
                 <span
-                  v-for="servicio in barber.servicios.slice(0, 3)"
-                  :key="servicio"
+                  v-for="(servicio, index) in barber.servicios.slice(0, 3)"
+                  :key="index"
                 >
-                  {{ servicio }}
+                  {{ servicio.nombre || servicio }}
                 </span>
               </div>
 

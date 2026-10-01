@@ -278,8 +278,8 @@ function removeAgenda(barberId) {
               <p class="location">{{ barber.direccion }}</p>
 
               <div class="tags">
-                <span v-for="servicio in barber.servicios" :key="servicio">
-                  {{ servicio }}
+                <span v-for="(servicio, index) in barber.servicios" :key="index">
+                  {{ servicio.nombre || servicio }}
                 </span>
               </div>
 

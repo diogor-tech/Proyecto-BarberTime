@@ -199,7 +199,7 @@ function abrirProducto(productId) {
               </div>
 
               <span class="price">
-                ${{ barber.precio }}
+                ${{ barber.servicios?.[0]?.precio || barber.precio }}
               </span>
 
             </div>
@@ -207,10 +207,10 @@ function abrirProducto(productId) {
             <div class="tags">
 
               <span
-                v-for="servicio in barber.servicios"
-                :key="servicio"
+                v-for="(servicio, index) in barber.servicios"
+                :key="index"
               >
-                {{ servicio }}
+                {{ servicio.nombre || servicio }}
               </span>
 
             </div>

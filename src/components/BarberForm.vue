@@ -12,6 +12,25 @@ const props = defineProps({
 const emit = defineEmits(['submit'])
 const router = useRouter()
 
+function normalizeServices(services, fallbackPrice = 500) {
+  const defaultPrice = Number(fallbackPrice) || 500
+
+  if (!Array.isArray(services) || services.length === 0) {
+    return [{ nombre: 'Corte de pelo', precio: defaultPrice }]
+  }
+
+  return services.map((service, index) => {
+    if (typeof service === 'string') {
+      return { nombre: service, precio: index === 0 ? defaultPrice : 0 }
+    }
+
+    return {
+      nombre: service.nombre ?? service.name ?? 'Servicio',
+      precio: Number(service.precio ?? 0)
+    }
+  })
+}
+
 const form = reactive({
   nombre: props.initialData?.nombre ?? '',
   direccion: props.initialData?.direccion ?? '',
@@ -20,21 +39,10 @@ const form = reactive({
   descripcion: props.initialData?.descripcion ?? '',
   imagen: props.initialData?.imagen ?? '',
   precio: props.initialData?.precio ?? 500,
-  servicios: props.initialData?.servicios ?? [],
+  servicios: normalizeServices(props.initialData?.servicios, props.initialData?.precio),
   horario: props.initialData?.horario ?? '',
   disponible: props.initialData?.disponible ?? true,
 })
-
-const servicios = [
-  'Fade',
-  'Barba',
-  'Premium',
-  'Express',
-  'VIP',
-  'Diseño',
-  'Skin Fade',
-  'Afro'
-]
 
 const imageInput = ref(null)
 const imageError = ref('')
@@ -74,21 +82,31 @@ function removeImage() {
   if (imageInput.value) imageInput.value.value = ''
 }
 
-function toggleServicio(servicio) {
-  const index = form.servicios.indexOf(servicio)
-  if (index === -1) {
-    form.servicios.push(servicio)
-  } else {
-    form.servicios.splice(index, 1)
-  }
+function addServicio() {
+  form.servicios.push({ nombre: '', precio: 0 })
+}
+
+function removeServicio(index) {
+  if (form.servicios.length === 1) return
+  form.servicios.splice(index, 1)
 }
 
 function handleSubmit() {
-  if (!form.nombre || !form.direccion || !form.ciudad || !form.imagen) {
+  const serviciosValidos = form.servicios.filter(servicio => String(servicio.nombre).trim() && Number(servicio.precio) > 0)
+
+  if (!form.nombre || !form.direccion || !form.ciudad || !form.imagen || serviciosValidos.length === 0) {
     alert('Por favor completa todos los campos requeridos')
     return
   }
-  emit('submit', { ...form })
+
+  emit('submit', {
+    ...form,
+    precio: Number(serviciosValidos[0].precio),
+    servicios: serviciosValidos.map(servicio => ({
+      nombre: String(servicio.nombre).trim(),
+      precio: Number(servicio.precio)
+    }))
+  })
 }
 </script>
 
@@ -186,36 +204,52 @@ function handleSubmit() {
         <button type="button" class="remove-image" @click="removeImage">Quitar imagen</button>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Precio base ($)</label>
-          <input
-            v-model.number="form.precio"
-            type="number"
-            min="1"
-            placeholder="500"
-          />
-        </div>
-
-      </div>
     </div>
 
     <div class="form-section">
-      <h3>Servicios Disponibles</h3>
-      <div class="servicios-grid">
-        <label
-          v-for="servicio in servicios"
-          :key="servicio"
-          class="servicio-checkbox"
-        >
-          <input
-            type="checkbox"
-            :checked="form.servicios.includes(servicio)"
-            @change="toggleServicio(servicio)"
-          />
-          <span>{{ servicio }}</span>
-        </label>
+      <div class="section-heading">
+        <h3>Servicios y precios</h3>
+        <span class="section-hint">Añade cada servicio con su precio</span>
       </div>
+
+      <div class="service-list">
+        <div v-for="(servicio, index) in form.servicios" :key="index" class="service-row">
+          <div class="form-group">
+            <label :for="`servicio-${index}`">Categoría {{ index + 1 }}</label>
+            <input
+              :id="`servicio-${index}`"
+              v-model="servicio.nombre"
+              type="text"
+              placeholder="Ej: Corte de pelo"
+            />
+          </div>
+
+          <div class="form-group">
+            <label :for="`precio-servicio-${index}`">Precio ($)</label>
+            <input
+              :id="`precio-servicio-${index}`"
+              v-model.number="servicio.precio"
+              type="number"
+              min="1"
+              placeholder="500"
+            />
+          </div>
+
+          <button
+            v-if="form.servicios.length > 1"
+            type="button"
+            class="remove-service"
+            :aria-label="`Quitar ${servicio.nombre || 'servicio'}`"
+            @click="removeServicio(index)"
+          >
+            Quitar
+          </button>
+        </div>
+      </div>
+
+      <button type="button" class="add-service" @click="addServicio">
+        + Añadir nuevo servicio
+      </button>
     </div>
 
     <div class="form-section">
@@ -260,6 +294,19 @@ function handleSubmit() {
   font-size: 1.3rem;
   margin-bottom: 25px;
   font-weight: 600;
+}
+
+.section-heading {
+  margin-bottom: 25px;
+}
+
+.section-heading h3 {
+  margin-bottom: 6px;
+}
+
+.section-hint {
+  color: #9ca3af;
+  font-size: 0.9rem;
 }
 
 .form-group {
@@ -375,6 +422,56 @@ function handleSubmit() {
   object-fit: cover;
 }
 
+.service-list {
+  display: grid;
+  gap: 14px;
+}
+
+.service-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px auto;
+  align-items: end;
+  gap: 14px;
+  padding: 16px;
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.service-row .form-group {
+  margin-bottom: 0;
+}
+
+.remove-service,
+.add-service {
+  border: 1px solid rgba(191, 146, 75, 0.55);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.remove-service {
+  background: transparent;
+  color: #d1d5db;
+}
+
+.remove-service:hover {
+  color: #fca5a5;
+  border-color: #fca5a5;
+}
+
+.add-service {
+  margin-top: 16px;
+  background: rgba(191, 146, 75, 0.1);
+  color: #BF924B;
+}
+
+.add-service:hover {
+  background: rgba(191, 146, 75, 0.2);
+}
+
 .remove-image {
   width: 100%;
   padding: 11px;
@@ -480,6 +577,14 @@ function handleSubmit() {
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .service-row {
+    grid-template-columns: 1fr;
+  }
+
+  .remove-service {
+    width: 100%;
   }
 
   .servicios-grid {

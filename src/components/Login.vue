@@ -12,78 +12,84 @@ const name = ref('')
 const email = ref('')
 const password = ref('')
 
-const login = () => {
-
-  const users =
-    JSON.parse(localStorage.getItem('users')) || []
-
-  const user = users.find(
-    u =>
-      u.email === email.value &&
-      u.password === password.value
-  )
-
-  if (!user) {
-    alert('Usuario incorrecto')
+// CONECTADO CON EL BACKEND EN PHP (INICIAR SESIÓN)
+const login = async () => {
+  if (!email.value || !password.value) {
+    alert('Por favor ingresa email y contraseña')
     return
   }
 
-  localStorage.setItem(
-    'currentUser',
-    JSON.stringify(user)
-  )
+  try {
+    const res = await fetch('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value
+      })
+    })
 
-  setUser(user)
-  emit('login', user)
-  emit('close')
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert(data.message || 'Usuario o contraseña incorrectos')
+      return
+    }
+
+    // Guardar Token JWT y Usuario
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('currentUser', JSON.stringify(data.user))
+
+    setUser(data.user)
+    emit('login', data.user)
+    emit('close')
+  } catch (err) {
+    alert('Error de conexión con el servidor')
+  }
 }
 
-const register = () => {
-
-  const users =
-    JSON.parse(localStorage.getItem('users')) || []
-
-  const exists = users.find(
-    u => u.email === email.value
-  )
-
-  if (exists) {
-    alert('Ese email ya existe')
+// CONECTADO CON EL BACKEND EN PHP (REGISTRO)
+const register = async () => {
+  if (!name.value || !email.value || !password.value) {
+    alert('Por favor completa todos los campos')
     return
   }
 
-  const newUser = {
-    id: Date.now(),
-    name: name.value,
-    email: email.value,
-    password: password.value,
-    avatar: defaultAvatar
+  try {
+    const res = await fetch('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.value,
+        email: email.value,
+        password: password.value,
+        avatar: defaultAvatar
+      })
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert(data.message || 'Error al registrar el usuario')
+      return
+    }
+
+    // Guardar Token JWT y Usuario
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('currentUser', JSON.stringify(data.user))
+
+    setUser(data.user)
+    emit('login', data.user)
+    emit('close')
+  } catch (err) {
+    alert('Error de conexión con el servidor')
   }
-
-  users.push(newUser)
-
-  localStorage.setItem(
-    'users',
-    JSON.stringify(users)
-  )
-
-  localStorage.setItem(
-    'currentUser',
-    JSON.stringify(newUser)
-  )
-
-  setUser(newUser)
-  emit('login', newUser)
-  emit('close')
 }
 </script>
 
 <template>
-
   <div class="overlay">
-
     <div class="modal">
-
       <button
         class="close-btn"
         @click="$emit('close')"
@@ -104,7 +110,6 @@ const register = () => {
       </p>
 
       <div class="form">
-
         <input
           v-if="!isLogin"
           v-model="name"
@@ -134,7 +139,6 @@ const register = () => {
               : 'Crear Cuenta'
           }}
         </button>
-
       </div>
 
       <small
@@ -147,15 +151,11 @@ const register = () => {
             : '¿Ya tienes cuenta? Inicia sesión'
         }}
       </small>
-
     </div>
-
   </div>
-
 </template>
 
 <style scoped>
-
 .overlay{
   position:fixed;
   inset:0;
@@ -229,5 +229,4 @@ input{
   cursor:pointer;
   text-align:center;
 }
-
 </style>

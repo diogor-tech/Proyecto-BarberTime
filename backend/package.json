@@ -4,8 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "backend": "php -S localhost:3000 -t backend",
+    "start": "concurrently \"npm run backend\" \"npm run dev\""
+}
+
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -20,4 +26,3 @@
   "devDependencies": {
     "nodemon": "^3.1.14"
   }
-}

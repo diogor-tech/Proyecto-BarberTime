@@ -4,235 +4,196 @@ import { ref, computed } from "vue"
 
 const sidebarMinimized = ref(false)
 
-const handleToggleSidebar = (v)=>{
-  sidebarMinimized.value=v
+const handleToggleSidebar = (v) => {
+  sidebarMinimized.value = v
 }
 
-const carrito =
-JSON.parse(localStorage.getItem("cart")) || []
+const carrito = JSON.parse(localStorage.getItem("cart")) || []
 
-const total = computed(()=>{
+const total = computed(() => {
+  return carrito.reduce((s, p) => {
+    const precio = p.discount
+      ? Math.round(p.price - p.price * p.discount / 100)
+      : p.price
 
-return carrito.reduce((s,p)=>{
-
-const precio=p.discount
-? Math.round(p.price-p.price*p.discount/100)
-: p.price
-
-return s+precio*p.cantidad
-
-},0)
-
+    return s + precio * p.cantidad
+  }, 0)
 })
 
-const nombre=ref("")
-const telefono=ref("")
-const direccion=ref("")
-const pago=ref("Tarjeta")
+const nombre = ref("")
+const telefono = ref("")
+const direccion = ref("")
+const pago = ref("Tarjeta")
 
-const finalizarCompra=()=>{
+// CONECTADO CON EL BACKEND EN PHP (FINALIZAR COMPRA)
+const finalizarCompra = async () => {
+  if (!nombre.value || !telefono.value || !direccion.value) {
+    alert("Por favor completa todos los datos de envío")
+    return
+  }
 
-alert("✅ Compra realizada correctamente")
+  if (carrito.length === 0) {
+    alert("Tu carrito está vacío")
+    return
+  }
 
-localStorage.removeItem("cart")
+  const token = localStorage.getItem('token')
 
-window.location.href="/store"
+  try {
+    const res = await fetch('http://localhost:3000/api/compras', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify({
+        nombre: nombre.value,
+        telefono: telefono.value,
+        direccion: direccion.value,
+        pago: pago.value,
+        carrito: carrito
+      })
+    })
 
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert(data.message || "Error al procesar la compra")
+      return
+    }
+
+    alert("✅ Compra realizada correctamente")
+    localStorage.removeItem("cart")
+    window.location.href = "/store"
+  } catch (err) {
+    alert("Error de conexión al procesar la compra")
+  }
 }
 </script>
 
 <template>
+  <div class="page-shell">
+    <Sidebar
+      @toggleSidebar="handleToggleSidebar"
+    />
 
-<div class="page-shell">
+    <main :class="['main-content', {'sidebar-minimized': sidebarMinimized}]">
+      <h1>Finalizar compra</h1>
 
-<Sidebar
-@toggleSidebar="handleToggleSidebar"
-/>
+      <div class="checkout">
+        <div class="form">
+          <input
+            v-model="nombre"
+            placeholder="Nombre completo"
+          />
 
-<main :class="['main-content',{'sidebar-minimized':sidebarMinimized}]">
+          <input
+            v-model="telefono"
+            placeholder="Teléfono"
+          />
 
-<h1>Finalizar compra</h1>
+          <input
+            v-model="direccion"
+            placeholder="Dirección"
+          />
 
-<div class="checkout">
+          <select v-model="pago">
+            <option>Tarjeta</option>
+            <option>Transferencia</option>
+            <option>Efectivo</option>
+          </select>
 
-<div class="form">
+          <button @click="finalizarCompra">
+            Confirmar compra
+          </button>
+        </div>
 
-<input
-v-model="nombre"
-placeholder="Nombre completo"
-/>
+        <div class="resume">
+          <h2>Resumen</h2>
 
-<input
-v-model="telefono"
-placeholder="Teléfono"
-/>
+          <div
+            v-for="item in carrito"
+            :key="item.id"
+            class="item"
+          >
+            <span>{{ item.name }}</span>
+            <span>x{{ item.cantidad }}</span>
+          </div>
 
-<input
-v-model="direccion"
-placeholder="Dirección"
-/>
+          <hr>
 
-<select v-model="pago">
-
-<option>Tarjeta</option>
-
-<option>Transferencia</option>
-
-<option>Efectivo</option>
-
-</select>
-
-<button @click="finalizarCompra">
-
-Confirmar compra
-
-</button>
-
-</div>
-
-<div class="resume">
-
-<h2>Resumen</h2>
-
-<div
-v-for="item in carrito"
-:key="item.id"
-class="item"
->
-
-<span>
-
-{{item.name}}
-
-</span>
-
-<span>
-
-x{{item.cantidad}}
-
-</span>
-
-</div>
-
-<hr>
-
-<h3>
-
-Total:
-
-${{total}}
-
-</h3>
-
-</div>
-
-</div>
-
-</main>
-
-</div>
-
+          <h3>Total: ${{ total }}</h3>
+        </div>
+      </div>
+    </main>
+  </div>
 </template>
 
 <style scoped>
-
 .main-content{
-margin-left:280px;
-padding:50px;
-background:#0f172a;
-min-height:100vh;
+  margin-left:280px;
+  padding:50px;
+  background:#0f172a;
+  min-height:100vh;
 }
 
 .sidebar-minimized{
-margin-left:80px;
+  margin-left:80px;
 }
 
 h1{
-color:white;
-margin-bottom:40px;
+  color:white;
+  margin-bottom:40px;
 }
 
 .checkout{
-display:grid;
-grid-template-columns:2fr 1fr;
-gap:40px;
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:40px;
 }
 
 .form{
-
-background:#111827;
-
-padding:35px;
-
-border-radius:20px;
-
-display:flex;
-
-flex-direction:column;
-
-gap:20px;
-
+  background:#111827;
+  padding:35px;
+  border-radius:20px;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
 }
 
 .form input,
 .form select{
-
-padding:16px;
-
-border:none;
-
-border-radius:12px;
-
-background:#1f2937;
-
-color:white;
-
+  padding:16px;
+  border:none;
+  border-radius:12px;
+  background:#1f2937;
+  color:white;
 }
 
 .form button{
-
-padding:18px;
-
-border:none;
-
-border-radius:14px;
-
-background:linear-gradient(135deg,#BF924B,#F3DDA7);
-
-font-weight:bold;
-
-cursor:pointer;
-
+  padding:18px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg,#BF924B,#F3DDA7);
+  font-weight:bold;
+  cursor:pointer;
 }
 
 .resume{
-
-background:#111827;
-
-padding:35px;
-
-border-radius:20px;
-
-color:white;
-
+  background:#111827;
+  padding:35px;
+  border-radius:20px;
+  color:white;
 }
 
 .item{
-
-display:flex;
-
-justify-content:space-between;
-
-margin:18px 0;
-
+  display:flex;
+  justify-content:space-between;
+  margin:18px 0;
 }
 
 hr{
-
-margin:20px 0;
-
-border:.5px solid #444;
-
+  margin:20px 0;
+  border:.5px solid #444;
 }
-
 </style>

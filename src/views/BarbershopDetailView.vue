@@ -183,8 +183,8 @@ function rateBarber(score) {
           <div v-if="barber.servicios && barber.servicios.length > 0" class="services-section">
             <h3>Servicios disponibles</h3>
             <div class="services-grid">
-              <div v-for="servicio in barber.servicios" :key="servicio" class="service-tag">
-                {{ servicio }}
+              <div v-for="(servicio, index) in barber.servicios" :key="index" class="service-tag">
+                {{ servicio.nombre || servicio }}<span v-if="servicio.precio"> · ${{ servicio.precio }}</span>
               </div>
             </div>
           </div>
@@ -405,6 +405,7 @@ function rateBarber(score) {
 .rating {
   font-size: 1.1rem;
   color: #ffd700;
+  margin-top: -30px;
 }
 
 .rating-panel {

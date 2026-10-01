@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
 import Login from '@/components/Login.vue'
-import { DEFAULT_AVATAR, useAuth } from '@/composables/useAuth'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
 const { setUser, logout } = useAuth()
@@ -19,162 +19,161 @@ const showLogin = ref(false)
 const user = ref({
   name: '',
   email: '',
-  avatar: ''
+  avatar: '',
+  telefono: '',
+  ciudad: '',
+  fechaNacimiento: '',
+  barberoFavorito: ''
 })
-onMounted(() => {
 
+onMounted(() => {
   const currentUser = localStorage.getItem("currentUser")
 
-  console.log("CURRENT USER:", currentUser)
-
   if (currentUser) {
-    user.value = JSON.parse(currentUser)
-    console.log("USER CARGADO:", user.value)
-  } else {
-    console.log("NO HAY USUARIO")
+    user.value = { ...user.value, ...JSON.parse(currentUser) }
   }
-
 })
 
-const guardarPerfil = () => {
+// CONECTADO CON EL BACKEND EN PHP (GUARDAR PERFIL)
+const guardarPerfil = async () => {
+  const token = localStorage.getItem('token')
 
-  localStorage.setItem(
-    'currentUser',
-    JSON.stringify(user.value)
-  )
-  setUser(user.value)
+  if (!token) {
+    alert('Debes iniciar sesión para guardar tus datos')
+    showLogin.value = true
+    return
+  }
 
-  alert('Perfil actualizado')
+  try {
+    const res = await fetch('http://localhost:3000/api/usuario/perfil', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(user.value)
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert(data.message || 'Error al actualizar el perfil')
+      return
+    }
+
+    alert('✅ Perfil actualizado correctamente')
+    localStorage.setItem('currentUser', JSON.stringify(data.user))
+    setUser(data.user)
+  } catch (err) {
+    alert('Error de conexión con el servidor')
+  }
 }
 
+// CAMBIAR FOTO EN BASE64
 const cambiarFoto = (event) => {
-
   const file = event.target.files[0]
-
   if (!file) return
 
   const reader = new FileReader()
-
   reader.onload = (e) => {
-
     user.value.avatar = e.target.result
-
-    localStorage.setItem(
-      'currentUser',
-      JSON.stringify(user.value)
-    )
-    setUser(user.value)
   }
-
   reader.readAsDataURL(file)
 }
 
+// CERRAR SESIÓN
 const cerrarSesion = () => {
-
+  localStorage.removeItem('token')
+  localStorage.removeItem('currentUser')
   logout()
-
   alert('Sesión cerrada')
-
   router.push('/')
 }
-
 </script>
-
 
 <template>
   <div class="page-shell">
-
     <Sidebar
       @openLogin="showLogin = true"
       @toggleSidebar="handleToggleSidebar"
     />
-<main :class="['main-content', { 'sidebar-minimized': sidebarMinimized }]">
 
-  <div class="profile-container">
+    <main :class="['main-content', { 'sidebar-minimized': sidebarMinimized }]">
+      <div class="profile-container">
+        <div class="profile-card">
+          <div class="avatar-container">
+            <img
+              :src="user.avatar || 'https://i.pravatar.cc/300'"
+              class="avatar"
+              alt="Foto de perfil"
+            />
 
-    <div class="profile-card">
+            <label class="change-photo">
+              📷 
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                @change="cambiarFoto"
+              />
+            </label>
+          </div>
 
-      <div class="avatar-container">
+          <h1>Mi Perfil</h1>
 
-        <img
-          :src="user.avatar || DEFAULT_AVATAR"
-          class="avatar"
-          alt="Foto de perfil"
-        />
-
-        <label class="change-photo">
-
-          📷 
-
+          <label>Nombre</label>
           <input
-            type="file"
-            accept="image/*"
-            hidden
-            @change="cambiarFoto"
+            v-model="user.name"
+            type="text"
           />
 
-        </label>
+          <label>Email</label>
+          <input
+            v-model="user.email"
+            type="email"
+            disabled
+          />
+          
+          <label>Teléfono</label>
+          <input
+            v-model="user.telefono"
+            type="tel"
+          />
 
-      </div>
+          <label>Ciudad</label>
+          <input
+            v-model="user.ciudad"
+            type="text"
+          />
 
-      <h1>Mi Perfil</h1>
+          <label>Fecha de nacimiento</label>
+          <input
+            v-model="user.fechaNacimiento"
+            type="date"
+          />
 
-      <label>Nombre</label>
-      <input
-        v-model="user.name"
-        type="text"
-      />
+          <label>Barbero favorito</label>
+          <input
+            v-model="user.barberoFavorito"
+            type="text"
+          />
 
-      <label>Email</label>
-      <input
-        v-model="user.email"
-        type="email"
-      />
-      
-<label>Teléfono</label>
-<input
-  v-model="user.telefono"
-  type="tel"
-/>
+          <div class="stats">
+            <div class="stat-card">
+              <h3>Miembro desde</h3>
+              <p>2026</p>
+            </div>
 
-<label>Ciudad</label>
-<input
-  v-model="user.ciudad"
-  type="text"
-/>
+            <div class="stat-card">
+              <h3>Reservas</h3>
+              <p>12</p>
+            </div>
 
-<label>Fecha de nacimiento</label>
-<input
-  v-model="user.fechaNacimiento"
-  type="date"
-/>
-
-<label>Barbero favorito</label>
-<input
-  v-model="user.barberoFavorito"
-  type="text"
-/>
-
-<div class="stats">
-
-  <div class="stat-card">
-    <h3>Miembro desde</h3>
-    <p>2026</p>
-  </div>
-
-  <div class="stat-card">
-    <h3>Reservas</h3>
-    <p>12</p>
-  </div>
-
-  <div class="stat-card">
-    <h3>Cuenta</h3>
-    <p>Gratis</p>
-  </div>
-
-</div>
-
-
+            <div class="stat-card">
+              <h3>Cuenta</h3>
+              <p>Gratis</p>
+            </div>
+          </div>
 
           <button
             class="save-btn"
@@ -189,178 +188,153 @@ const cerrarSesion = () => {
           >
             Cerrar sesión
           </button>
-
         </div>
-
       </div>
-
     </main>
 
     <Login
       v-if="showLogin"
       @close="showLogin = false"
     />
-
   </div>
 </template>
 
 <style scoped>
-
-
-.main-content.sidebar-minimized{
-  margin-left:80px;
-  width:calc(100% - 80px);
-  display:flex;
-  justify-content:center;
-  align-items:center;
+.main-content {
+  margin-left: 280px;
+  padding: 40px;
+  min-height: 100vh;
+  background: #0b0f17;
+  color: white;
+  transition: .3s;
 }
 
-.profile-container{
-  width:100%;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+.main-content.sidebar-minimized {
+  margin-left: 80px;
 }
 
-.profile-card{
-  width:720px;
-  max-width:90%;
-  background:#000;
-  border:1px solid rgba(191,146,75,.35);
-  border-radius:35px;
-  padding:55px;
-  box-shadow:0 20px 60px rgba(0,0,0,.7);
+.profile-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.avatar-container{
-  position:relative;
-  width:170px;
-  margin:0 auto 35px;
+.profile-card {
+  width: 100%;
+  max-width: 600px;
+  background: #111827;
+  padding: 40px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
 }
 
-.avatar{
-  width:170px;
-  height:170px;
-  border-radius:50%;
-  object-fit:cover;
-  border:5px solid #BF924B;
-  display:block;
-  box-shadow:0 0 25px rgba(191,146,75,.35);
+.avatar-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
 }
 
-.change-photo{
-  position:absolute;
-  bottom:5px;
-  right:5px;
-  width:45px;
-  height:45px;
-  border-radius:50%;
-  background:#BF924B;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  cursor:pointer;
-  font-size:18px;
-  transition:.3s;
-  box-shadow:0 5px 15px rgba(0,0,0,.4);
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #BF924B;
 }
 
-.change-photo:hover{
-  transform:scale(1.1);
+.change-photo {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #BF924B;
+  color: black;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
 }
 
-h1{
-  text-align:center;
-  color:white;
-  margin-bottom:35px;
-  font-size:2rem;
+h1 {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 2rem;
 }
 
-label{
-  display:block;
-  color:#d1d5db;
-  margin:18px 0 8px;
-  font-weight:600;
+label {
+  color: #9ca3af;
+  margin-top: 15px;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
 }
 
-input{
-  width:100%;
-  padding:16px;
-  border:none;
-  border-radius:12px;
-  background:#111827;
-  color:white;
-  font-size:15px;
-  box-sizing:border-box;
+input {
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px;
+  border-radius: 12px;
+  color: white;
+  outline: none;
 }
 
-input:focus{
-  outline:none;
-  border:1px solid #BF924B;
+input:disabled {
+  opacity: 0.6;
 }
 
-.save-btn{
-  width:100%;
-  margin-top:30px;
-  padding:16px;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:bold;
-  font-size:16px;
-  background:linear-gradient(135deg,#BF924B,#F3DDA7);
-  color:black;
-  transition:.3s;
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 25px 0;
 }
 
-.save-btn:hover{
-  transform:translateY(-3px);
+.stat-card {
+  background: #1f2937;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
 }
 
-.logout-btn{
-  width:100%;
-  margin-top:15px;
-  padding:16px;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:bold;
-  font-size:16px;
-  background:#dc2626;
-  color:white;
-  transition:.3s;
+.stat-card h3 {
+  font-size: 0.8rem;
+  color: #9ca3af;
 }
 
-.logout-btn:hover{
-  background:#b91c1c;
-  transform:translateY(-3px);
-}
-.stats{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:15px;
-  margin-top:35px;
+.stat-card p {
+  font-size: 1.2rem;
+  color: #BF924B;
+  font-weight: bold;
+  margin-top: 5px;
 }
 
-.stat-card{
-  background:#111827;
-  border:1px solid rgba(191,146,75,.25);
-  border-radius:15px;
-  padding:18px;
-  text-align:center;
+.save-btn {
+  background: linear-gradient(135deg, #BF924B, #ffb743);
+  color: black;
+  font-weight: bold;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  margin-top: 10px;
+  cursor: pointer;
 }
 
-.stat-card h3{
-  color:#BF924B;
-  font-size:14px;
-  margin-bottom:10px;
+.logout-btn {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  padding: 14px;
+  border-radius: 12px;
+  margin-top: 12px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-.stat-card p{
-  color:white;
-  font-size:22px;
-  font-weight:bold;
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
 }
-
 </style>
