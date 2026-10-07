@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 
-export const DEFAULT_AVATAR = 'https://drive.google.com/thumbnail?id=1Igq46CyxTBBX8AEimgfYxqmZrgcZLZqL&sz=w640'
+export const DEFAULT_AVATAR =
+  'https://drive.google.com/thumbnail?id=1Igq46CyxTBBX8AEimgfYxqmZrgcZLZqL&sz=w640'
 
 const currentUser = ref(readCurrentUser())
 
@@ -18,8 +19,25 @@ function readCurrentUser() {
 }
 
 export function useAuth() {
-  const isAuthenticated = computed(() => currentUser.value !== null)
-  const avatar = computed(() => currentUser.value?.avatar || '')
+  const isAuthenticated = computed(
+    () => currentUser.value !== null
+  )
+
+  const avatar = computed(
+    () => currentUser.value?.avatar || ''
+  )
+
+  const isAdmin = computed(
+    () => currentUser.value?.role === 'admin'
+  )
+
+  const isBarber = computed(
+    () => currentUser.value?.role === 'barbero'
+  )
+
+  const isClient = computed(
+    () => currentUser.value?.role === 'cliente'
+  )
 
   function setUser(user) {
     currentUser.value = user
@@ -33,6 +51,9 @@ export function useAuth() {
   return {
     currentUser,
     isAuthenticated,
+    isAdmin,
+    isBarber,
+    isClient,
     avatar,
     setUser,
     logout,

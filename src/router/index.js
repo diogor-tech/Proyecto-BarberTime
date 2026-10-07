@@ -4,15 +4,18 @@ import StoreView from "@/views/StoreView.vue"
 import CartView from "@/views/CartView.vue"
 import ProductView from "@/views/ProductView.vue"
 import CheckoutView from "@/views/CheckoutView.vue"
+import AdminView from '@/views/AdminView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    
     {
       path: '/',
       name: 'home',
       component: HomeView,
     },
+    
 
     {
       path: '/explore',
@@ -23,6 +26,8 @@ const router = createRouter({
   path: "/product/:id",
   component: ProductView
 },
+
+
 
     {
       path: '/agenda',
@@ -37,6 +42,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
       component: () => import('../views/FavoritesView.vue'),
     },
+    
 
     {
       path: '/profile',
@@ -68,23 +74,58 @@ component:CheckoutView
   component: CartView
 },
 
-    {
+        {
       path: '/barbershop/:id',
       name: 'barbershop-detail',
       component: () => import('../views/BarbershopDetailView.vue'),
     },
+
     {
-  path: "/store",
-  name: "store",
-  component: StoreView
+      path: "/store",
+      name: "store",
+      component: StoreView
+    },
+
+    {
+  path: "/admin",
+  name: "admin",
+  meta: {
+    requiresAuth: true,
+    requiresAdmin: true
+  },
+  component: AdminView
 }
 
   ],
 })
 
 router.beforeEach((to) => {
-  if (to.meta.requiresAuth && !localStorage.getItem('currentUser')) {
-    return { path: '/', query: { login: 'required' } }
+
+  const currentUser = JSON.parse(
+    localStorage.getItem('currentUser')
+  )
+
+  // Rutas que requieren estar logueado
+  if (
+    to.meta.requiresAuth &&
+    !currentUser
+  ) {
+    return {
+      path: '/',
+      query: {
+        login: 'required'
+      }
+    }
+  }
+
+  // Rutas exclusivas del administrador
+  if (
+    to.meta.requiresAdmin &&
+    currentUser?.role !== 'admin'
+  ) {
+    alert('No tenés permisos para acceder al panel de administración.')
+
+    return '/'
   }
 })
 

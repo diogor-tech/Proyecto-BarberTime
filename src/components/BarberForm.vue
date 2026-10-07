@@ -1,5 +1,7 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted, nextTick } from 'vue'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
@@ -11,38 +13,86 @@ const props = defineProps({
 
 const emit = defineEmits(['submit'])
 const router = useRouter()
-
-function normalizeServices(services, fallbackPrice = 500) {
-  const defaultPrice = Number(fallbackPrice) || 500
-
-  if (!Array.isArray(services) || services.length === 0) {
-    return [{ nombre: 'Corte de pelo', precio: defaultPrice }]
-  }
-
-  return services.map((service, index) => {
-    if (typeof service === 'string') {
-      return { nombre: service, precio: index === 0 ? defaultPrice : 0 }
-    }
-
-    return {
-      nombre: service.nombre ?? service.name ?? 'Servicio',
-      precio: Number(service.precio ?? 0)
-    }
-  })
-}
+const mapContainer = ref(null)
+let map = null
+let marker = null
 
 const form = reactive({
   nombre: props.initialData?.nombre ?? '',
   direccion: props.initialData?.direccion ?? '',
   ciudad: props.initialData?.ciudad ?? '',
+  latitud: props.initialData?.latitud ?? null,
+  longitud: props.initialData?.longitud ?? null,
   telefono: props.initialData?.telefono ?? '',
   descripcion: props.initialData?.descripcion ?? '',
   imagen: props.initialData?.imagen ?? '',
   precio: props.initialData?.precio ?? 500,
-  servicios: normalizeServices(props.initialData?.servicios, props.initialData?.precio),
+  servicios: props.initialData?.servicios ?? [],
   horario: props.initialData?.horario ?? '',
   disponible: props.initialData?.disponible ?? true,
 })
+function inicializarMapa() {
+  if (!mapContainer.value) return
+
+  // Ubicación inicial: si ya existe una ubicación,
+  // usamos esa. Si no, usamos Uruguay.
+  const latInicial = form.latitud ?? -32.5228
+  const lngInicial = form.longitud ?? -55.7658
+
+  map = L.map(mapContainer.value).setView(
+    [latInicial, lngInicial],
+    form.latitud && form.longitud ? 16 : 7
+  )
+
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map)
+
+  // Si la barbería ya tiene ubicación, mostramos el marcador
+  if (form.latitud && form.longitud) {
+    marker = L.marker([
+      form.latitud,
+      form.longitud
+    ]).addTo(map)
+  }
+
+  // Cuando el usuario hace clic en el mapa
+  map.on('click', (e) => {
+    const lat = e.latlng.lat
+    const lng = e.latlng.lng
+
+    form.latitud = Number(lat.toFixed(6))
+    form.longitud = Number(lng.toFixed(6))
+
+    if (marker) {
+      marker.setLatLng([lat, lng])
+    } else {
+      marker = L.marker([lat, lng]).addTo(map)
+    }
+  })
+
+  // Leaflet necesita esto cuando el mapa está dentro
+  // de un componente que acaba de aparecer
+  setTimeout(() => {
+    map.invalidateSize()
+  }, 100)
+}
+
+onMounted(async () => {
+  await nextTick()
+  inicializarMapa()
+})
+
+const servicios = [
+  'Fade',
+  'Barba',
+  'Premium',
+  'Express',
+  'VIP',
+  'Diseño',
+  'Skin Fade',
+  'Afro'
+]
 
 const imageInput = ref(null)
 const imageError = ref('')
@@ -82,31 +132,21 @@ function removeImage() {
   if (imageInput.value) imageInput.value.value = ''
 }
 
-function addServicio() {
-  form.servicios.push({ nombre: '', precio: 0 })
-}
-
-function removeServicio(index) {
-  if (form.servicios.length === 1) return
-  form.servicios.splice(index, 1)
+function toggleServicio(servicio) {
+  const index = form.servicios.indexOf(servicio)
+  if (index === -1) {
+    form.servicios.push(servicio)
+  } else {
+    form.servicios.splice(index, 1)
+  }
 }
 
 function handleSubmit() {
-  const serviciosValidos = form.servicios.filter(servicio => String(servicio.nombre).trim() && Number(servicio.precio) > 0)
-
-  if (!form.nombre || !form.direccion || !form.ciudad || !form.imagen || serviciosValidos.length === 0) {
+  if (!form.nombre || !form.direccion || !form.ciudad || !form.imagen) {
     alert('Por favor completa todos los campos requeridos')
     return
   }
-
-  emit('submit', {
-    ...form,
-    precio: Number(serviciosValidos[0].precio),
-    servicios: serviciosValidos.map(servicio => ({
-      nombre: String(servicio.nombre).trim(),
-      precio: Number(servicio.precio)
-    }))
-  })
+  emit('submit', { ...form })
 }
 </script>
 
@@ -166,6 +206,27 @@ function handleSubmit() {
           />
         </div>
       </div>
+      <div class="form-section">
+  <h3>📍 Ubicación de la barbería</h3>
+
+  <p class="map-instruction">
+    Haz clic en el mapa para marcar exactamente dónde está tu barbería.
+  </p>
+
+  <div ref="mapContainer" class="map-container"></div>
+
+  <div v-if="form.latitud && form.longitud" class="coordinates">
+    <span>📍 Ubicación seleccionada</span>
+    <small>
+      Latitud: {{ form.latitud }} |
+      Longitud: {{ form.longitud }}
+    </small>
+  </div>
+
+  <p v-else class="map-warning">
+    ⚠️ Todavía no seleccionaste una ubicación.
+  </p>
+</div>
 
       <div class="form-group">
         <label>Descripción</label>
@@ -204,52 +265,36 @@ function handleSubmit() {
         <button type="button" class="remove-image" @click="removeImage">Quitar imagen</button>
       </div>
 
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio base ($)</label>
+          <input
+            v-model.number="form.precio"
+            type="number"
+            min="1"
+            placeholder="500"
+          />
+        </div>
+
+      </div>
     </div>
 
     <div class="form-section">
-      <div class="section-heading">
-        <h3>Servicios y precios</h3>
-        <span class="section-hint">Añade cada servicio con su precio</span>
+      <h3>Servicios Disponibles</h3>
+      <div class="servicios-grid">
+        <label
+          v-for="servicio in servicios"
+          :key="servicio"
+          class="servicio-checkbox"
+        >
+          <input
+            type="checkbox"
+            :checked="form.servicios.includes(servicio)"
+            @change="toggleServicio(servicio)"
+          />
+          <span>{{ servicio }}</span>
+        </label>
       </div>
-
-      <div class="service-list">
-        <div v-for="(servicio, index) in form.servicios" :key="index" class="service-row">
-          <div class="form-group">
-            <label :for="`servicio-${index}`">Categoría {{ index + 1 }}</label>
-            <input
-              :id="`servicio-${index}`"
-              v-model="servicio.nombre"
-              type="text"
-              placeholder="Ej: Corte de pelo"
-            />
-          </div>
-
-          <div class="form-group">
-            <label :for="`precio-servicio-${index}`">Precio ($)</label>
-            <input
-              :id="`precio-servicio-${index}`"
-              v-model.number="servicio.precio"
-              type="number"
-              min="1"
-              placeholder="500"
-            />
-          </div>
-
-          <button
-            v-if="form.servicios.length > 1"
-            type="button"
-            class="remove-service"
-            :aria-label="`Quitar ${servicio.nombre || 'servicio'}`"
-            @click="removeServicio(index)"
-          >
-            Quitar
-          </button>
-        </div>
-      </div>
-
-      <button type="button" class="add-service" @click="addServicio">
-        + Añadir nuevo servicio
-      </button>
     </div>
 
     <div class="form-section">
@@ -294,19 +339,6 @@ function handleSubmit() {
   font-size: 1.3rem;
   margin-bottom: 25px;
   font-weight: 600;
-}
-
-.section-heading {
-  margin-bottom: 25px;
-}
-
-.section-heading h3 {
-  margin-bottom: 6px;
-}
-
-.section-hint {
-  color: #9ca3af;
-  font-size: 0.9rem;
 }
 
 .form-group {
@@ -422,56 +454,6 @@ function handleSubmit() {
   object-fit: cover;
 }
 
-.service-list {
-  display: grid;
-  gap: 14px;
-}
-
-.service-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px auto;
-  align-items: end;
-  gap: 14px;
-  padding: 16px;
-  background: #1f2937;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-}
-
-.service-row .form-group {
-  margin-bottom: 0;
-}
-
-.remove-service,
-.add-service {
-  border: 1px solid rgba(191, 146, 75, 0.55);
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.remove-service {
-  background: transparent;
-  color: #d1d5db;
-}
-
-.remove-service:hover {
-  color: #fca5a5;
-  border-color: #fca5a5;
-}
-
-.add-service {
-  margin-top: 16px;
-  background: rgba(191, 146, 75, 0.1);
-  color: #BF924B;
-}
-
-.add-service:hover {
-  background: rgba(191, 146, 75, 0.2);
-}
-
 .remove-image {
   width: 100%;
   padding: 11px;
@@ -569,6 +551,46 @@ function handleSubmit() {
 .btn-cancel:hover {
   background: #2d3748;
 }
+.map-instruction {
+  color: #9ca3af;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.map-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid rgba(191, 146, 75, 0.4);
+  cursor: crosshair;
+}
+
+.coordinates {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(191, 146, 75, 0.1);
+  border: 1px solid rgba(191, 146, 75, 0.3);
+  border-radius: 10px;
+}
+
+.coordinates span {
+  color: #BF924B;
+  font-weight: 600;
+}
+
+.coordinates small {
+  color: #d1d5db;
+}
+
+.map-warning {
+  margin-top: 12px;
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
 
 @media (max-width: 600px) {
   .form-section {
@@ -577,14 +599,6 @@ function handleSubmit() {
 
   .form-row {
     grid-template-columns: 1fr;
-  }
-
-  .service-row {
-    grid-template-columns: 1fr;
-  }
-
-  .remove-service {
-    width: 100%;
   }
 
   .servicios-grid {
